@@ -88,8 +88,8 @@ def main():
     with col1:
         st.subheader("질문하기")
         audio = audiorecorder("클릭하여 녹음하기", "녹음 중...")
-        # 'audio'가 None이 아닐 때만 뒷부분을 실행하도록 수정
-        if audio and (audio.duration_seconds > 0) and not st.session_state["check_reset"]:
+        # 'audio' 객체가 존재하고, 리셋 버튼이 눌리지 않았을 때만 실행하도록 수정
+        if audio and not st.session_state["check_reset"]:
             st.audio(audio.export().read())
             question = STT(audio, st.session_state["OPENAI_API"])
 
@@ -99,8 +99,8 @@ def main():
 
     with col2:
         st.subheader("질문/답변")
-        # 'audio'가 None이 아닐 때만 뒷부분을 실행하도록 수정
-        if audio and (audio.duration_seconds > 0) and not st.session_state["check_reset"]:
+        # 'audio' 객체가 존재하고, 리셋 버튼이 눌리지 않았을 때만 실행하도록 수정
+        if audio and not st.session_state["check_reset"]:
             response = ask_gpt(st.session_state["messages"], model, st.session_state["OPENAI_API"])
             st.session_state["messages"].append({"role": "system", "content": response})
             now = datetime.now().strftime("%H:%M")

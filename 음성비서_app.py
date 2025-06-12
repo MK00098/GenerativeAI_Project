@@ -1,5 +1,5 @@
 import streamlit as st
-from st_audiorec import st_audiorec
+from audiorecorder import audiorecorder
 import openai
 import os
 from datetime import datetime
@@ -8,24 +8,22 @@ import base64
 
 ##### 기능 구현 함수 #####
 
-def STT(audio_bytes, apikey):
-    # Bytes 데이터를 파일로 저장
-    filename = 'input.mp3'
-    with open(filename, "wb") as f:
-        f.write(audio_bytes)
-
+def STT(audio, apikey):
+    # 파일 저장
+    filename='input.mp3'
+    audio.export(filename, format="mp3")
     # 음원 파일 열기
-    with open(filename, "rb") as audio_file:
-        # Whisper 모델을 활용해 텍스트 얻기
-        client = openai.OpenAI(api_key=apikey)
-        response = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
-
+    audio_file = open(filename, "rb")
+    # Whisper 모델을 활용해 텍스트 얻기
+    client = openai.OpenAI(api_key = apikey)
+    response = client.audio.transcriptions.create(model = "whisper-1", file = audio_file)
+    audio_file.close()
     # 파일 삭제
     os.remove(filename)
     return response.text
 
 def ask_gpt(prompt, model, apikey):
-    client = openai.OpenAI(api_key=apikey)
+    client = openai.OpenAI(api_key = apikey)
     response = client.chat.completions.create(
         model=model,
         messages=prompt)
@@ -52,7 +50,10 @@ def TTS(response):
 
 ##### 메인 함수 #####
 def main():
-    st.set_page_config(page_title="음성 비서 프로그램", layout="wide")
+    st.set_page_config(
+        page_title="음성 비서 프로그램",
+        layout="wide")
+
     st.header("음성 비서 프로그램")
     st.markdown("---")
 
@@ -86,18 +87,21 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("질문하기")
-        audio_bytes = st_audiorec()
-        if audio_bytes and not st.session_state["check_reset"]:
-            st.audio(audio_bytes)
-            question = STT(audio_bytes, st.session_state["OPENAI_API"])
+        audio = audiorecorder("클릭하여 녹음하기", "녹음 중...")
+
+        # audio 객체가 존재하고(None이 아니고), 녹음 시간이 0초를 초과하고, 리셋 버튼이 눌리지 않았을 때
+        if audio and (audio.duration_seconds > 0) and not st.session_state["check_reset"]:
+            st.audio(audio.export().read())
+            question = STT(audio, st.session_state["OPENAI_API"])
+
             now = datetime.now().strftime("%H:%M")
             st.session_state["chat"].append(("user", now, question))
             st.session_state["messages"].append({"role": "user", "content": question})
 
     with col2:
         st.subheader("질문/답변")
-        # audio_bytes가 존재하고, 리셋 버튼이 눌리지 않았을 때만 실행
-        if 'question' in locals() and not st.session_state["check_reset"]:
+         # audio 객체가 존재하고(None이 아니고), 녹음 시간이 0초를 초과하고, 리셋 버튼이 눌리지 않았을 때
+        if audio and (audio.duration_seconds > 0) and not st.session_state["check_reset"]:
             response = ask_gpt(st.session_state["messages"], model, st.session_state["OPENAI_API"])
             st.session_state["messages"].append({"role": "system", "content": response})
             now = datetime.now().strftime("%H:%M")
@@ -109,3 +113,8 @@ def main():
                     st.write("")
                 else:
                     st.write(f'<div style="display: flex; align-items: center; justify-content: flex-end;"><div style="background-color:lightgray; border-radius:12px; padding:8px 12px; margin-left:auto;">{message}</div><div style="font-size:0.8rem; color:gray;">{time}</div></div>', unsafe_allow_html=True)
+                    st.write("")
+            TTS(response)
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 streamlit
 openai
 gtts
-st_audiorec
+streamlit-audiorecorder==0.0.2
 PyAudio

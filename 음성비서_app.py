@@ -1,9 +1,3 @@
-네, streamlit-audiorecorder==0.0.2 버전에 맞게 롤백한 음성비서_app.py의 전체 코드를 다시 정리해 드립니다.
-
-이 전체 코드를 복사하여 GitHub의 음성비서_app.py 파일 내용을 덮어쓰시면, 수동으로 수정하는 과정의 실수를 방지할 수 있습니다.
-
-Python
-
 import streamlit as st
 from audiorecorder import audiorecorder
 import openai

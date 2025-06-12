@@ -1,5 +1,11 @@
+네, streamlit-audiorecorder==0.0.2 버전에 맞게 롤백한 음성비서_app.py의 전체 코드를 다시 정리해 드립니다.
+
+이 전체 코드를 복사하여 GitHub의 음성비서_app.py 파일 내용을 덮어쓰시면, 수동으로 수정하는 과정의 실수를 방지할 수 있습니다.
+
+Python
+
 import streamlit as st
-from st_audiorec import st_audiorec
+from audiorecorder import audiorecorder
 import openai
 import os
 from datetime import datetime
@@ -12,8 +18,7 @@ import base64
 def STT(audio, apikey):
     # 파일 저장
     filename='input.mp3'
-    with open(filename, "wb") as f:
-        f.write(audio)
+    audio.export(filename, format="mp3")
     # 음원 파일 열기
     audio_file = open(filename, "rb")
     # Whisper 모델을 활용해 텍스트 얻기
@@ -105,14 +110,9 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("질문하기")
-        # st_audiorec 라이브러리 사용
-        audio = st_audiorec()
-        
-        # 녹음된 오디오가 있는 경우
-        if audio and (st.session_state["check_reset"] == False):
-            # 음성 재생
-            st.audio(audio)
-            # 음원 파일에서 텍스트 추출
+        audio = audiorecorder("클릭하여 녹음하기", "녹음 중...")
+        if (audio.duration_seconds > 0) and (st.session_state["check_reset"] == False):
+            st.audio(audio.export().read())
             question = STT(audio, st.session_state["OPENAI_API"])
 
             now = datetime.now().strftime("%H:%M")
@@ -121,7 +121,7 @@ def main():
 
     with col2:
         st.subheader("질문/답변")
-        if audio and (st.session_state["check_reset"] == False):
+        if (audio.duration_seconds > 0) and (st.session_state["check_reset"] == False):
             # ChatGPT에게 답변 얻기
             response = ask_gpt(st.session_state["messages"], model, st.session_state["OPENAI_API"])
 

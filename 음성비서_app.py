@@ -1,5 +1,5 @@
 import streamlit as st
-from audiorecorder import audiorecorder
+from st_audiorec import st_audiorec
 import openai
 import os
 from datetime import datetime
@@ -12,7 +12,8 @@ import base64
 def STT(audio, apikey):
     # 파일 저장
     filename='input.mp3'
-    audio.export(filename, format="mp3")
+    with open(filename, "wb") as f:
+        f.write(audio)
     # 음원 파일 열기
     audio_file = open(filename, "rb")
     # Whisper 모델을 활용해 텍스트 얻기
@@ -104,9 +105,14 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("질문하기")
-        audio = audiorecorder("클릭하여 녹음하기", "녹음 중...")
-        if (audio.duration_seconds > 0) and (st.session_state["check_reset"] == False):
-            st.audio(audio.export().read())
+        # st_audiorec 라이브러리 사용
+        audio = st_audiorec()
+        
+        # 녹음된 오디오가 있는 경우
+        if audio and (st.session_state["check_reset"] == False):
+            # 음성 재생
+            st.audio(audio)
+            # 음원 파일에서 텍스트 추출
             question = STT(audio, st.session_state["OPENAI_API"])
 
             now = datetime.now().strftime("%H:%M")
@@ -115,13 +121,17 @@ def main():
 
     with col2:
         st.subheader("질문/답변")
-        if (audio.duration_seconds > 0) and (st.session_state["check_reset"] == False):
+        if audio and (st.session_state["check_reset"] == False):
+            # ChatGPT에게 답변 얻기
             response = ask_gpt(st.session_state["messages"], model, st.session_state["OPENAI_API"])
 
+            # GPT 모델에 넣을 프롬프트를 위해 답변 내용 저장
             st.session_state["messages"] = st.session_state["messages"] + [{"role": "system", "content": response}]
+            # 채팅 시각화를 위한 답변 내용 저장
             now = datetime.now().strftime("%H:%M")
             st.session_state["chat"] = st.session_state["chat"] + [("bot", now, response)]
 
+            # 채팅 형식으로 시각화하기
             for sender, time, message in st.session_state["chat"]:
                 if sender == "user":
                     st.write(f'<div style="display: flex; align-items: center;"><div style="background-color:#007AFF; color:white; border-radius:12px; padding:8px 12px; margin-right:auto;">{message}</div><div style="font-size:0.8rem; color:gray;">{time}</div></div>', unsafe_allow_html=True)
@@ -130,6 +140,7 @@ def main():
                     st.write(f'<div style="display: flex; align-items: center; justify-content: flex-end;"><div style="background-color:lightgray; border-radius:12px; padding:8px 12px; margin-left:auto;">{message}</div><div style="font-size:0.8rem; color:gray;">{time}</div></div>', unsafe_allow_html=True)
                     st.write("")
 
+            # gTTS를 활용하여 음성 파일 생성 및 재생
             TTS(response)
 
 if __name__=="__main__":
